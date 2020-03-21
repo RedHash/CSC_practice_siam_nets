@@ -9,7 +9,7 @@ def get_backbone(name, kwargs):
     if name == 'resnet34':
         return resnet34()
 
-    if name == 'resnet50-pysot':
+    if name == 'resnet50-pysot' or name == 'resnet50-imagenet':
         return resnet50()
 
     if name.startswith('efficientnet'):
