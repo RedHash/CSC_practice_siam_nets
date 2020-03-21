@@ -89,6 +89,11 @@ class ModelHolder:
             self.RPN_TYPE = "MultiRPN"
             self.RPN_KWARGS = {'anchor_num': 5, 'in_channels': [256, 256, 256], 'weighted': True}
 
+            if self.model_name == 'resnet50-pysot':
+                # no normalization needed for this kind of pretrained weights
+                global IS_NORM  
+                IS_NORM = False
+
         if self.model_name.startswith('efficientnet'):
             self.BACKBONE_TYPE = self.model_name
             self.BACKBONE_KWARGS = {'use_features': [4, 5, 6], 'strides': [1, 2, 1, 1, 1, 1, 1]}
