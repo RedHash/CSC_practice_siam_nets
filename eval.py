@@ -10,9 +10,18 @@ METRICS = ['accuracy', 'robustness', 'speed_fps']
 def evaluate(model, device, writer, visualize=False):
 
     tracker = TrackerEvalWrapper(model, device)
-    experiment = ExperimentVOT(**cfg.EVAL_KWARGS)
-    experiment.run(tracker, visualize=visualize)
-    report = experiment.report([tracker.name])
+
+    if cfg.EVAL_KWARGS['dataset_name'] == 'VOT':
+        experiment = ExperimentVOT(cfg.EVAL_KWARGS['root_dir'],
+                                   version=cfg.EVAL_KWARGS['version'],
+                                   download=cfg.EVAL_KWARGS['download'])
+        experiment.run(tracker, visualize=visualize)
+        report = experiment.report([tracker.name])
+        print(report)
+
+    else:
+        # TODO: Possibly add other datasets
+        raise NotImplementedError('Other evaluation datasets not supported yet')
 
     # TODO Log performace in tensorboard (see train.py)
     # TODO Early stopping / saving weights

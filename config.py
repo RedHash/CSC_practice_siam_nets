@@ -51,7 +51,7 @@ SCHEDULER_GAMMA = 0.95
 SCHEDULER_TMAX = 50
 SCHEDULER_WARMUP = 5
 
-EVAL_KWARGS = {'data_path': ..., 'dataset_name': 'VOT', 'version': 2016, 'download': True, }
+EVAL_KWARGS = {'dataset_name': 'VOT', 'root_dir': 'data/vot', 'version': 2016, 'download': True, }
 TRACK_BASE_SIZE = 8
 TRACK_CONTEXT_AMOUNT = 0.5
 TRACK_PENALTY_K = 0.04
@@ -90,7 +90,7 @@ class ModelHolder:
             self.RPN_KWARGS = {'anchor_num': 5, 'in_channels': [256, 256, 256], 'weighted': True}
 
             if self.model_name == 'resnet50-pysot':
-                # no normalization needed for this kind of pretrained weights
+                # no normalization needed for this kind of pre-trained weights
                 global IS_NORM  
                 IS_NORM = False
 
