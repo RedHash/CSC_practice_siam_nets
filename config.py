@@ -69,7 +69,7 @@ TRAIN_DATASETS = ('COCO',)
 # COCO
 COCO_SAMPLE_RANGE = 0
 
-MODEL_NAME = 'efficientnet-b0'
+MODEL_NAME = 'resnet50-pysot'
 
 
 class ModelHolder:

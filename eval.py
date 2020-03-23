@@ -9,6 +9,7 @@ METRICS = ['accuracy', 'robustness', 'speed_fps']
 
 def evaluate(model, device, writer, visualize=False):
 
+    model.eval()
     tracker = TrackerEvalWrapper(model, device)
 
     if cfg.EVAL_KWARGS['dataset_name'] == 'VOT':
@@ -17,14 +18,40 @@ def evaluate(model, device, writer, visualize=False):
                                    download=cfg.EVAL_KWARGS['download'])
         experiment.run(tracker, visualize=visualize)
         report = experiment.report([tracker.name])
-        print(report)
+
+        metrics = report[cfg.MODEL_NAME]
 
     else:
         # TODO: Possibly add other datasets
-        raise NotImplementedError('Other evaluation datasets not supported yet')
+        raise NotImplementedError('Other evaluation datasets not supported yet; Use VOT')
 
-    # TODO Log performace in tensorboard (see train.py)
-    # TODO Early stopping / saving weights
+    # Log to TensorBoard
+    # metrics is a dict {'accuracy: .., 'robustness': .., 'speed_fps': ..}
+    for m in METRICS:
+        writer.add_scalar(f"Eval/{m}", metrics[m], writer.eval_step)
+
+    metrics_improved = False
+
+    # Assuming that model's properties keep the best values:
+    if model.accuracy < metrics['accuracy']:
+        model.metrics[0] = metrics['accuracy']
+        metrics_improved = True
+
+    if model.robustness > metrics['robustness']:
+        model.metrics[1] = metrics['robustness']
+        metrics_improved = True
+
+    if model.speed_fps < metrics['speed_fps']:
+        model.metrics[2] = metrics['speed_fps']
+        metrics_improved = True
+
+    # save weights if any metric improved
+    if metrics_improved:
+        stats = "".join('{}:{}'.format(k, v) for k, v in metrics.items())
+        model.save(stats + '.pth')
+
+    writer.eval_step += 1
+
     return tracker.model, writer
 
 

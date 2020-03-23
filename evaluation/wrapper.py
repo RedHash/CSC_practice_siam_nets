@@ -233,8 +233,9 @@ class SiamRpnEvalTracker:
 class TrackerEvalWrapper(SiamRpnEvalTracker):
     def __init__(self, model, device='cpu', bgr=True):
         super(TrackerEvalWrapper, self).__init__(model, device)
-        self.name = 'SiamRpn++'
+        self.name = cfg.MODEL_NAME
         self.is_deterministic = True
+        # TODO: Check BGR and RGB modes (bgr only for pysot version?)
         self.bgr = bgr
 
     def init(self, image, bbox):
