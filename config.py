@@ -30,6 +30,7 @@ D_DETECTION = 255
 OUTPUT_SIZE = 25
 HARDNEG_PROB = 0.2
 IS_NORM = True
+BGR = False
 
 POS_NUM = 16
 NEG_NUM = 48
@@ -69,7 +70,7 @@ TRAIN_DATASETS = ('COCO',)
 # COCO
 COCO_SAMPLE_RANGE = 0
 
-MODEL_NAME = 'resnet50-pysot'
+MODEL_NAME = 'resnet50-imagenet'
 
 
 class ModelHolder:
@@ -90,9 +91,9 @@ class ModelHolder:
             self.RPN_KWARGS = {'anchor_num': 5, 'in_channels': [256, 256, 256], 'weighted': True}
 
             if self.model_name == 'resnet50-pysot':
-                # no normalization needed for this kind of pre-trained weights
-                global IS_NORM  
+                global IS_NORM, BGR
                 IS_NORM = False
+                BGR = True
 
         if self.model_name.startswith('efficientnet'):
             self.BACKBONE_TYPE = self.model_name

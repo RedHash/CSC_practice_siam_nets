@@ -1,6 +1,7 @@
 import cv2
 import numpy as np
 import torch
+from torchvision import transforms
 import torch.nn.functional as F
 
 from utils.anchor import Anchors
@@ -41,9 +42,11 @@ class SiamRpnEvalTracker:
         w_z = self.size[0] + cfg.TRACK_CONTEXT_AMOUNT * np.sum(self.size)
         h_z = self.size[1] + cfg.TRACK_CONTEXT_AMOUNT * np.sum(self.size)
         s_z = round(np.sqrt(w_z * h_z))
+
         z_crop = self.get_subwindow(img, self.center_pos,
                                     cfg.D_TEMPLATE,
                                     s_z, self.channel_average)
+
         self.model.template(z_crop)
 
     def track(self, img):
@@ -171,11 +174,15 @@ class SiamRpnEvalTracker:
         if not np.array_equal(model_sz, original_sz):
             im_patch = cv2.resize(im_patch, (model_sz, model_sz))
 
-        im_patch = im_patch.transpose(2, 0, 1)
-        im_patch = im_patch[np.newaxis, :, :, :]
-        im_patch = im_patch.astype(np.float32)
-        im_patch = torch.from_numpy(im_patch)
+        if cfg.IS_NORM:
+            im_patch = self.normalize(im_patch)
 
+        else:
+            im_patch = im_patch.transpose(2, 0, 1)
+            im_patch = im_patch.astype(np.float32)
+            im_patch = torch.from_numpy(im_patch)
+
+        im_patch = im_patch.unsqueeze(0)
         im_patch = im_patch.to(self.device)
 
         return im_patch
@@ -229,18 +236,25 @@ class SiamRpnEvalTracker:
         height = max(10, min(height, boundary[0]))
         return cx, cy, width, height
 
+    @staticmethod
+    def normalize(x):
+        transform = transforms.Compose([
+            transforms.ToTensor(),
+            transforms.Normalize((0.485, 0.456, 0.406), (0.229, 0.224, 0.225))
+        ])
+        return transform(x)
+
 
 class TrackerEvalWrapper(SiamRpnEvalTracker):
-    def __init__(self, model, device='cpu', bgr=True):
+    def __init__(self, model, device='cpu'):
         super(TrackerEvalWrapper, self).__init__(model, device)
         self.name = cfg.MODEL_NAME
         self.is_deterministic = True
-        # TODO: Check BGR and RGB modes (bgr only for pysot version?)
-        self.bgr = bgr
 
     def init(self, image, bbox):
         image = np.array(image)
-        if self.bgr:
+
+        if cfg.BGR:
             image = cv2.cvtColor(image, cv2.COLOR_RGB2BGR)
 
         if len(bbox) == 4:
@@ -258,7 +272,8 @@ class TrackerEvalWrapper(SiamRpnEvalTracker):
         :return: bbox: (cx, cy, w, h)
         """
         image = np.array(image)
-        if self.bgr:
+
+        if cfg.BGR:
             image = cv2.cvtColor(image, cv2.COLOR_RGB2BGR)
 
         score, bbox = self.track(image)
