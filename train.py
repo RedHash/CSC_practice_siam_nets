@@ -1,4 +1,5 @@
 import numpy as np
+import torch
 from torch import Tensor
 from tqdm import tqdm
 from torch.nn.utils import clip_grad_norm_
@@ -42,6 +43,7 @@ def train(model, optimizer, dataloader, scheduler, criter, device, writer):
                 writer.add_scalar(f"Train/gradnorm_{model_part}", get_gradnorm(optimizer, group), writer.train_step)
             for group, model_part in enumerate(MODEL_PARTS):
                 writer.add_scalar(f"Train/lr_{model_part}", get_lr(optimizer, group), writer.train_step)
+            writer.add_scalar(f"Used GPU memory", torch.cuda.memory_allocated(device), writer.train_step)
 
             clip_grad_norm_(model.parameters(), cfg.GRAD_CLIP)
             optimizer.step()
