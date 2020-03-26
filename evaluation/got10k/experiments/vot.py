@@ -107,9 +107,10 @@ class ExperimentVOT(object):
                 record_file = os.path.join(
                     self.result_dir, tracker.name, 'baseline', seq_name,
                     '%s_%03d.txt' % (seq_name, r + 1))
-                if os.path.exists(record_file):
-                    print('  Found results, skipping', seq_name)
-                    continue
+                # COMMENTED SINCE WE USE IT AS VALIDATION
+                # if os.path.exists(record_file):
+                #     print('  Found results, skipping', seq_name)
+                #     continue
 
                 # state variables
                 boxes = []

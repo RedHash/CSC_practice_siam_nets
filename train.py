@@ -1,4 +1,5 @@
 import numpy as np
+import torch
 from torch import Tensor
 from tqdm import tqdm
 from torch.nn.utils import clip_grad_norm_
@@ -15,7 +16,7 @@ def train(model, optimizer, dataloader, scheduler, criter, device, writer):
     loss_values = np.zeros(4)
     model.train()
 
-    pbar = tqdm(enumerate(dataloader), total=len(dataloader.dataset), leave=False)
+    pbar = tqdm(enumerate(dataloader), total=len(dataloader), leave=False)
     for idx_batch, batch in pbar:
 
         templates, detections, gts, pos_anchors, neg_anchors = \
@@ -42,6 +43,7 @@ def train(model, optimizer, dataloader, scheduler, criter, device, writer):
                 writer.add_scalar(f"Train/gradnorm_{model_part}", get_gradnorm(optimizer, group), writer.train_step)
             for group, model_part in enumerate(MODEL_PARTS):
                 writer.add_scalar(f"Train/lr_{model_part}", get_lr(optimizer, group), writer.train_step)
+            writer.add_scalar(f"Train/gpu memory", torch.cuda.memory_allocated(device), writer.train_step)
 
             clip_grad_norm_(model.parameters(), cfg.GRAD_CLIP)
             optimizer.step()

@@ -30,6 +30,7 @@ D_DETECTION = 255
 OUTPUT_SIZE = 25
 HARDNEG_PROB = 0.2
 IS_NORM = True
+BGR = False
 
 POS_NUM = 16
 NEG_NUM = 48
@@ -51,7 +52,7 @@ SCHEDULER_GAMMA = 0.95
 SCHEDULER_TMAX = 50
 SCHEDULER_WARMUP = 5
 
-EVAL_KWARGS = {'data_path': ..., 'dataset_name': 'VOT', 'version': 2016, 'download': True, }
+EVAL_KWARGS = {'dataset_name': 'VOT', 'root_dir': 'data/vot', 'version': 2016, 'download': True, }
 TRACK_BASE_SIZE = 8
 TRACK_CONTEXT_AMOUNT = 0.5
 TRACK_PENALTY_K = 0.04
@@ -69,7 +70,7 @@ TRAIN_DATASETS = ('COCO',)
 # COCO
 COCO_SAMPLE_RANGE = 0
 
-MODEL_NAME = 'efficientnet-b0'
+MODEL_NAME = 'resnet50-imagenet'
 
 
 class ModelHolder:
@@ -88,6 +89,11 @@ class ModelHolder:
 
             self.RPN_TYPE = "MultiRPN"
             self.RPN_KWARGS = {'anchor_num': 5, 'in_channels': [256, 256, 256], 'weighted': True}
+
+            if self.model_name == 'resnet50-pysot':
+                global IS_NORM, BGR
+                IS_NORM = False
+                BGR = True
 
         if self.model_name.startswith('efficientnet'):
             self.BACKBONE_TYPE = self.model_name

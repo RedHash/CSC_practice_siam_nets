@@ -106,7 +106,7 @@ class SiamTracker(nn.Module):
 
     @property
     def speed_fps(self):
-        return self.metrics[3]
+        return self.metrics[2]
 
     @property
     def backbone_trainable(self):
