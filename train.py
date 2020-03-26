@@ -15,7 +15,7 @@ def train(model, optimizer, dataloader, scheduler, criter, device, writer):
     loss_values = np.zeros(4)
     model.train()
 
-    pbar = tqdm(enumerate(dataloader), total=len(dataloader.dataset), leave=False)
+    pbar = tqdm(enumerate(dataloader), total=len(dataloader), leave=False)
     for idx_batch, batch in pbar:
 
         templates, detections, gts, pos_anchors, neg_anchors = \
