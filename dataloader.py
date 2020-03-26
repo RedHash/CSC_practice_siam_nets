@@ -54,6 +54,10 @@ class TrainingDataset(Dataset):
         template_gt, detection_gt, template_img, detection_img = \
             self.sample_hardnegative() if hard_negative else self.sample()
 
+        if cfg.BGR:
+            template_img = self.rgb_to_bgr(template_img)
+            detection_img = self.rgb_to_bgr(detection_img)
+
         template_A, detection_A = self.get_A(template_gt), self.get_A(detection_gt)
         template_center, detection_center = self.get_center(template_gt), self.get_center(detection_gt)
         template_indent, detection_indent = \
@@ -120,18 +124,10 @@ class TrainingDataset(Dataset):
         shift = np.random.randint(- video.sample_range, video.sample_range + 1)
         detection_idx = np.clip(template_idx + shift, a_min=0, a_max=n_frames - 1)
 
-        # create PIL images
-        template_img = Image.open(video.images[template_idx]).convert("RGB")
-        detection_img = Image.open(video.images[detection_idx]).convert("RGB")
-
-        # convert from RGB to BGR if necessary
-        if cfg.BGR:
-            template_img = self.rgb_to_bgr(template_img)
-            detection_img = self.rgb_to_bgr(detection_img)
-
         return video.gt[template_idx], \
             video.gt[detection_idx], \
-            template_img, detection_img
+            Image.open(video.images[template_idx]).convert("RGB"), \
+            Image.open(video.images[detection_idx]).convert("RGB")
 
     def sample_hardnegative(self):
         """ Extract data from 2 different videos for hard-negative train """
@@ -142,16 +138,10 @@ class TrainingDataset(Dataset):
         n_frames1, n_frames2 = len(video1), len(video2)
         template_idx, detection_idx = np.random.randint(n_frames1), np.random.randint(n_frames2)
 
-        template_img = Image.open(video1.images[template_idx]).convert("RGB")
-        detection_img = Image.open(video2.images[detection_idx]).convert("RGB")
-
-        if cfg.BGR:
-            template_img = self.rgb_to_bgr(template_img)
-            detection_img = self.rgb_to_bgr(detection_img)
-
         return video1.gt[template_idx], \
             video2.gt[detection_idx], \
-            template_img, detection_img
+            Image.open(video1.images[template_idx]).convert("RGB"), \
+            Image.open(video2.images[detection_idx]).convert("RGB")
 
     def crop_template(self, img, center, indent, shift):
         """ Crop and resize image """
