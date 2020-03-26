@@ -120,10 +120,18 @@ class TrainingDataset(Dataset):
         shift = np.random.randint(- video.sample_range, video.sample_range + 1)
         detection_idx = np.clip(template_idx + shift, a_min=0, a_max=n_frames - 1)
 
+        # create PIL images
+        template_img = Image.open(video.images[template_idx]).convert("RGB")
+        detection_img = Image.open(video.images[detection_idx]).convert("RGB")
+
+        # convert from RGB to BGR if necessary
+        if cfg.BGR:
+            template_img = self.rgb_to_bgr(template_img)
+            detection_img = self.rgb_to_bgr(detection_img)
+
         return video.gt[template_idx], \
             video.gt[detection_idx], \
-            Image.open(video.images[template_idx]).convert("RGB"), \
-            Image.open(video.images[detection_idx]).convert("RGB")
+            template_img, detection_img
 
     def sample_hardnegative(self):
         """ Extract data from 2 different videos for hard-negative train """
@@ -133,10 +141,17 @@ class TrainingDataset(Dataset):
         # choose template/detection indexes
         n_frames1, n_frames2 = len(video1), len(video2)
         template_idx, detection_idx = np.random.randint(n_frames1), np.random.randint(n_frames2)
+
+        template_img = Image.open(video1.images[template_idx]).convert("RGB")
+        detection_img = Image.open(video2.images[detection_idx]).convert("RGB")
+
+        if cfg.BGR:
+            template_img = self.rgb_to_bgr(template_img)
+            detection_img = self.rgb_to_bgr(detection_img)
+
         return video1.gt[template_idx], \
             video2.gt[detection_idx], \
-            Image.open(video1.images[template_idx]).convert("RGB"), \
-            Image.open(video2.images[detection_idx]).convert("RGB")
+            template_img, detection_img
 
     def crop_template(self, img, center, indent, shift):
         """ Crop and resize image """
@@ -249,6 +264,14 @@ class TrainingDataset(Dataset):
             resize_detection=transforms.Resize((cfg.D_DETECTION, cfg.D_DETECTION)),
             to_pil=transforms.ToPILImage(),
         )
+
+    @staticmethod
+    def rgb_to_bgr(img):
+        """ img: PIL RGB Image
+            returns: PIL BGR Image """
+        arr = np.array(img)
+        arr = arr[:, :, ::-1]
+        return Image.fromarray(arr)
 
 
 def get_train_dataloader(n_per_epoch, batch_size, num_workers):
