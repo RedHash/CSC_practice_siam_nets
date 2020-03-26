@@ -5,7 +5,7 @@ from torchvision import transforms
 import torch.nn.functional as F
 
 from utils.anchor import Anchors
-from utils.crops import get_axis_aligned_bbox, corner_wh_bbox, get_scaled_bbox
+from utils.crops import get_axis_aligned_bbox, corner_wh_bbox, get_scaled_bbox, corner2center
 import config as cfg
 
 
@@ -246,7 +246,7 @@ class SiamRpnEvalTracker:
 
 
 class TrackerEvalWrapper(SiamRpnEvalTracker):
-    def __init__(self, model, device='cpu'):
+    def __init__(self, model, device):
         super(TrackerEvalWrapper, self).__init__(model, device)
         self.name = cfg.MODEL_NAME
         self.is_deterministic = True
@@ -277,4 +277,7 @@ class TrackerEvalWrapper(SiamRpnEvalTracker):
             image = cv2.cvtColor(image, cv2.COLOR_RGB2BGR)
 
         score, bbox = self.track(image)
+
+        bbox = corner2center(bbox)
+
         return bbox

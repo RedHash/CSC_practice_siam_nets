@@ -45,7 +45,11 @@ class TrainingDataset(Dataset):
         return self.n_per_epoch
 
     def single_sample(self, hard_negative=False):
-        """ Implement extracting data for training """
+        """
+        Implement extracting data for training
+        :param hard_negative:
+        :return: gt in format (x1, y1, x2, y2), ...
+        """
 
         template_gt, detection_gt, template_img, detection_img = \
             self.sample_hardnegative() if hard_negative else self.sample()
@@ -69,15 +73,14 @@ class TrainingDataset(Dataset):
                                             detection_indent, detection_shift)
 
         # TODO More checks
-        """
-        from PIL import ImageDraw
-        template_img = self.transforms.to_pil(template_img)
-        detection_img = self.transforms.to_pil(detection_img)
-        d = ImageDraw.Draw(detection_img)
-        d.rectangle(tuple(detection_gt), outline=1)
-        # template_img.show()
-        # detection_img.show()
-        """
+        # template_img_1 = self.transforms.to_pil(template_img)
+        # template_img_1.show()
+        #
+        # from PIL import ImageDraw
+        # detection_img_1 = self.transforms.to_pil(detection_img)
+        # d = ImageDraw.Draw(detection_img_1)
+        # d.rectangle(tuple(detection_gt), outline=1)
+        # detection_img_1.show()
 
         # get dists and correct gt parametrization
         overlaps = self.get_iou(detection_gt)
@@ -109,15 +112,18 @@ class TrainingDataset(Dataset):
         # choose specific video
         idx = np.random.randint(self.n_videos)
         video = self.videos[idx]
+
         # choose template/detection indexes
         n_frames = len(video)
         template_idx = np.random.randint(n_frames)
+
         shift = np.random.randint(- video.sample_range, video.sample_range + 1)
         detection_idx = np.clip(template_idx + shift, a_min=0, a_max=n_frames - 1)
+
         return video.gt[template_idx], \
             video.gt[detection_idx], \
-            Image.open(video.images[template_idx]), \
-            Image.open(video.images[detection_idx])
+            Image.open(video.images[template_idx]).convert("RGB"), \
+            Image.open(video.images[detection_idx]).convert("RGB")
 
     def sample_hardnegative(self):
         """ Extract data from 2 different videos for hard-negative train """
@@ -129,8 +135,8 @@ class TrainingDataset(Dataset):
         template_idx, detection_idx = np.random.randint(n_frames1), np.random.randint(n_frames2)
         return video1.gt[template_idx], \
             video2.gt[detection_idx], \
-            Image.open(video1.images[template_idx]), \
-            Image.open(video2.images[detection_idx])
+            Image.open(video1.images[template_idx]).convert("RGB"), \
+            Image.open(video2.images[detection_idx]).convert("RGB")
 
     def crop_template(self, img, center, indent, shift):
         """ Crop and resize image """

@@ -23,7 +23,6 @@ def evaluate(model, device, writer, visualize=False):
         report = experiment.report([tracker.name])
 
         metrics = report[cfg.MODEL_NAME]
-
     else:
         # TODO: Possibly add other datasets
         raise NotImplementedError('Other evaluation datasets not supported yet; Use VOT')
@@ -33,26 +32,7 @@ def evaluate(model, device, writer, visualize=False):
     for m in METRICS:
         writer.add_scalar(f"Eval/{m}", metrics[m], writer.eval_step)
 
-    metrics_improved = False
-
-    # Assuming that model's properties keep the best values:
-    if model.accuracy < metrics['accuracy']:
-        model.metrics[0] = metrics['accuracy']
-        metrics_improved = True
-
-    if model.robustness > metrics['robustness']:
-        model.metrics[1] = metrics['robustness']
-        metrics_improved = True
-
-    if model.speed_fps < metrics['speed_fps']:
-        model.metrics[2] = metrics['speed_fps']
-        metrics_improved = True
-
-    # save weights if any metric improved
-    if metrics_improved:
-        stats = cfg.MODEL_NAME + "".join('{}:{}'.format(k, v)
-                                         for k, v in metrics.items())
-        model.save(stats + '.pth')
+    model.save(str(writer.eval_step) + '.pth')
 
     writer.eval_step += 1
 
