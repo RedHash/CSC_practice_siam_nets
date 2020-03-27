@@ -77,6 +77,8 @@ class ModelHolder:
     def __init__(self, name):
         self.model_name = name
 
+        global IS_NORM, BGR, ANCHOR_NUM
+
         if self.model_name == 'resnet50-pysot' or 'resnet50-imagenet':
             self.BACKBONE_TYPE = self.model_name
             self.BACKBONE_KWARGS = {}
@@ -88,10 +90,9 @@ class ModelHolder:
             self.NECK_KWARGS = {'in_channels': [512, 1024, 2048], 'out_channels': [256, 256, 256]}
 
             self.RPN_TYPE = "MultiRPN"
-            self.RPN_KWARGS = {'anchor_num': 5, 'in_channels': [256, 256, 256], 'weighted': True}
+            self.RPN_KWARGS = {'anchor_num': ANCHOR_NUM, 'in_channels': [256, 256, 256], 'weighted': True}
 
             if self.model_name == 'resnet50-pysot':
-                global IS_NORM, BGR
                 IS_NORM = False
                 BGR = True
 
@@ -106,7 +107,7 @@ class ModelHolder:
             self.NECK_KWARGS = {'in_channels': [112, 192, 320], 'out_channels': [256, 256, 256]}
 
             self.RPN_TYPE = "MultiRPN"
-            self.RPN_KWARGS = {'anchor_num': 5, 'in_channels': [256, 256, 256], 'weighted': True}
+            self.RPN_KWARGS = {'anchor_num': ANCHOR_NUM, 'in_channels': [256, 256, 256], 'weighted': True}
 
         if self.model_name.startswith('efficientdet'):
             det2net = {f'efficientdet-d{i}': f'efficientnet-b{i}' for i in range(8)}
@@ -121,6 +122,6 @@ class ModelHolder:
             self.NECK_KWARGS = {'out_size': 16, 'num_layers': 5}
 
             self.RPN_TYPE = "MultiRPN"
-            self.RPN_KWARGS = {'anchor_num': 5, 'in_channels': [256, 256, 256, 256, 256], 'weighted': True}
+            self.RPN_KWARGS = {'anchor_num': ANCHOR_NUM, 'in_channels': [256, 256, 256, 256, 256], 'weighted': True}
 
         self.BACKBONE_WEIGHTS = BACKBONE_PATH / self.BACKBONE_TYPE
