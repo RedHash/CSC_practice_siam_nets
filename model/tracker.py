@@ -9,22 +9,21 @@ from model.neck import get_neck
 from model.head import get_rpn_head
 
 import config as cfg
-from config import ModelHolder
 
 
 class SiamTracker(nn.Module):
     xf: torch.Tensor
     zf: torch.Tensor
     metrics: np.ndarray = np.zeros(3)
+    load_epoch: int = 0
 
     def __init__(self):
         super().__init__()
-        holder = ModelHolder(cfg.MODEL_NAME)
 
-        self.backbone = get_backbone(holder.BACKBONE_TYPE, holder.BACKBONE_KWARGS)
-        self.chest = get_chest(holder.CHEST_TYPE, holder.CHEST_KWARGS)
-        self.neck = get_neck(holder.NECK_TYPE, holder.NECK_KWARGS)
-        self.rpn_head = get_rpn_head(holder.RPN_TYPE, holder.RPN_KWARGS)
+        self.backbone = get_backbone(cfg.MODEL_HOLDER.BACKBONE_TYPE, cfg.MODEL_HOLDER.BACKBONE_KWARGS)
+        self.chest = get_chest(cfg.MODEL_HOLDER.CHEST_TYPE, cfg.MODEL_HOLDER.CHEST_KWARGS)
+        self.neck = get_neck(cfg.MODEL_HOLDER.NECK_TYPE, cfg.MODEL_HOLDER.NECK_KWARGS)
+        self.rpn_head = get_rpn_head(cfg.MODEL_HOLDER.RPN_TYPE, cfg.MODEL_HOLDER.RPN_KWARGS)
 
     def template(self, z):
         zf = self.backbone(z)
@@ -56,19 +55,25 @@ class SiamTracker(nn.Module):
         self.chest.load_state_dict(state['chest'])
         self.neck.load_state_dict(state['neck'])
         self.rpn_head.load_state_dict(state['head'])
+        self.metrics = state['metrics']
+        self.load_epoch = state['last_epoch']
 
-    def save(self, save_filename):
+    def save(self, save_filename, save_epoch):
         state = {'backbone': self.backbone.state_dict(),
                  'chest': self.chest.state_dict(),
                  'neck': self.neck.state_dict(),
-                 'head': self.rpn_head.state_dict()}
+                 'head': self.rpn_head.state_dict(),
+                 'metrics': self.metrics,
+                 'last_epoch': save_epoch}
         torch.save(state, cfg.WEIGHTS_PATH / save_filename)
 
     def load_backbone(self, path):
         self.backbone.load_state_dict(torch.load(path), strict=True)
 
     def unfroze_trainable(self):
-        for param in chain(self.neck.parameters(), self.rpn_head.parameters()):
+        for param in chain(self.chest.parameters(),
+                           self.neck.parameters(),
+                           self.rpn_head.parameters()):
             param.requires_grad_(True)
 
     def froze_backbone(self):

@@ -246,9 +246,9 @@ class SiamRpnEvalTracker:
 
 
 class TrackerEvalWrapper(SiamRpnEvalTracker):
-    def __init__(self, model, device):
+    def __init__(self, model, device, model_name):
         super(TrackerEvalWrapper, self).__init__(model, device)
-        self.name = cfg.MODEL_NAME
+        self.name = model_name
         self.is_deterministic = True
 
     def init(self, image, bbox):

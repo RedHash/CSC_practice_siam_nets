@@ -275,7 +275,7 @@ def get_train_dataloader(n_per_epoch, batch_size, num_workers):
 
     def collate_fn(batch_data):
         templates, detections, gts, pos, neg = zip(*batch_data)
-        return torch.cat(templates), torch.cat(detections), torch.cat(gts), pos, neg
+        return torch.cat(templates), torch.cat(detections), torch.cat(gts).float(), pos, neg
 
     return DataLoader(dataset=TrainingDataset(videos_list, n_per_epoch),
                       batch_size=batch_size, num_workers=num_workers, collate_fn=collate_fn)

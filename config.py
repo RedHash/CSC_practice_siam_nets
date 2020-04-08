@@ -1,5 +1,5 @@
 import torch
-from pathlib import Path
+from pathlib import Path, PosixPath
 
 
 # additional
@@ -70,17 +70,25 @@ TRAIN_DATASETS = ('COCO',)
 # COCO
 COCO_SAMPLE_RANGE = 0
 
-MODEL_NAME = 'resnet50-imagenet'
-
 
 class ModelHolder:
-    def __init__(self, name):
-        self.model_name = name
+
+    BACKBONE_TYPE: str
+    BACKBONE_KWARGS: dict
+    CHEST_TYPE: str
+    CHEST_KWARGS: dict
+    NECK_TYPE: str
+    NECK_KWARGS: dict
+    RPN_TYPE: str
+    RPN_KWARGS: dict
+    BACKBONE_WEIGHTS: PosixPath
+
+    def choose_model(self, model_name):
 
         global IS_NORM, BGR, ANCHOR_NUM
 
-        if self.model_name == 'resnet50-pysot' or 'resnet50-imagenet':
-            self.BACKBONE_TYPE = self.model_name
+        if model_name == 'resnet50-pysot' or 'resnet50-imagenet':
+            self.BACKBONE_TYPE = model_name
             self.BACKBONE_KWARGS = {}
 
             self.CHEST_TYPE = 'Identity'
@@ -92,12 +100,12 @@ class ModelHolder:
             self.RPN_TYPE = "MultiRPN"
             self.RPN_KWARGS = {'anchor_num': ANCHOR_NUM, 'in_channels': [256, 256, 256], 'weighted': True}
 
-            if self.model_name == 'resnet50-pysot':
+            if model_name == 'resnet50-pysot':
                 IS_NORM = False
                 BGR = True
 
-        if self.model_name.startswith('efficientnet'):
-            self.BACKBONE_TYPE = self.model_name
+        if model_name.startswith('efficientnet'):
+            self.BACKBONE_TYPE = model_name
             self.BACKBONE_KWARGS = {'use_features': [4, 5, 6], 'strides': [1, 2, 1, 1, 1, 1, 1]}
 
             self.CHEST_TYPE = 'Identity'
@@ -109,10 +117,10 @@ class ModelHolder:
             self.RPN_TYPE = "MultiRPN"
             self.RPN_KWARGS = {'anchor_num': ANCHOR_NUM, 'in_channels': [256, 256, 256], 'weighted': True}
 
-        if self.model_name.startswith('efficientdet'):
+        if model_name.startswith('efficientdet'):
             det2net = {f'efficientdet-d{i}': f'efficientnet-b{i}' for i in range(8)}
 
-            self.BACKBONE_TYPE = det2net[self.model_name]
+            self.BACKBONE_TYPE = det2net[model_name]
             self.BACKBONE_KWARGS = {'use_features': [2, 3, 4, 5, 6], 'strides': [1, 2, 2, 2, 2, 2, 2]}
 
             self.CHEST_TYPE = 'BIFPN'
@@ -125,3 +133,6 @@ class ModelHolder:
             self.RPN_KWARGS = {'anchor_num': ANCHOR_NUM, 'in_channels': [256, 256, 256, 256, 256], 'weighted': True}
 
         self.BACKBONE_WEIGHTS = BACKBONE_PATH / self.BACKBONE_TYPE
+
+
+MODEL_HOLDER = ModelHolder()

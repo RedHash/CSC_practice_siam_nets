@@ -10,10 +10,10 @@ from config import ModelHolder
 METRICS = ['accuracy', 'robustness', 'speed_fps']
 
 
-def evaluate(model, device, writer, visualize=False):
+def evaluate(model, device, writer, save_filename, args, epoch=0, visualize=False):
 
     model.eval()
-    tracker = TrackerEvalWrapper(model, device)
+    tracker = TrackerEvalWrapper(model, device, args.model_name)
 
     if cfg.EVAL_KWARGS['dataset_name'] == 'VOT':
         experiment = ExperimentVOT(cfg.EVAL_KWARGS['root_dir'],
@@ -21,19 +21,16 @@ def evaluate(model, device, writer, visualize=False):
                                    download=cfg.EVAL_KWARGS['download'])
         experiment.run(tracker, visualize=visualize)
         report = experiment.report([tracker.name])
-
-        metrics = report[cfg.MODEL_NAME]
+        metrics = report[args.model_name]
     else:
         # TODO: Possibly add other datasets
         raise NotImplementedError('Other evaluation datasets not supported yet; Use VOT')
 
-    # Log to TensorBoard
     # metrics is a dict {'accuracy: .., 'robustness': .., 'speed_fps': ..}
     for m in METRICS:
         writer.add_scalar(f"Eval/{m}", metrics[m], writer.eval_step)
-
-    model.save(str(writer.eval_step) + '.pth')
-
+    if save_filename is not None:
+        model.save(save_filename, epoch)
     writer.eval_step += 1
 
     return tracker.model, writer
@@ -48,7 +45,8 @@ if __name__ == "__main__":
     args = parser.parse_args()
 
     siam_tracker = SiamTracker()
-    holder = ModelHolder(cfg.MODEL_NAME)
+    holder = ModelHolder()
+    holder.choose_model('resnet50-pysot')
     siam_tracker.load_state_dict(torch.load(args.model_path))
 
     device = torch.device("cuda:0" if torch.cuda.is_available() else "cpu")
