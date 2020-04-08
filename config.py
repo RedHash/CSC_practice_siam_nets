@@ -30,6 +30,7 @@ D_DETECTION = 255
 OUTPUT_SIZE = 25
 HARDNEG_PROB = 0.2
 IS_NORM = True
+MAX_VALUE_IS_255 = False
 BGR = False
 
 POS_NUM = 16
@@ -85,7 +86,7 @@ class ModelHolder:
 
     def choose_model(self, model_name):
 
-        global IS_NORM, BGR, ANCHOR_NUM
+        global IS_NORM, BGR, ANCHOR_NUM, MAX_VALUE_IS_255
 
         if model_name == 'resnet50-pysot' or 'resnet50-imagenet':
             self.BACKBONE_TYPE = model_name
@@ -102,6 +103,7 @@ class ModelHolder:
 
             if model_name == 'resnet50-pysot':
                 IS_NORM = False
+                MAX_VALUE_IS_255 = True
                 BGR = True
 
         if model_name.startswith('efficientnet'):

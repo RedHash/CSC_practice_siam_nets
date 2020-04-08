@@ -50,9 +50,9 @@ def load_model(load_filename):
             download_backbone_weights(cfg.MODEL_HOLDER.BACKBONE_TYPE, cfg.MODEL_HOLDER.BACKBONE_WEIGHTS)
         model.load_backbone(cfg.MODEL_HOLDER.BACKBONE_WEIGHTS)
         model.initialize_weights()
+    logger(f"Model trainable parameters: {count_parameters(model)}")
     model.froze_backbone()
     model.unfroze_trainable()
-    logger(f"Model trainable parameters: {count_parameters(model)}")
     return model
 
 

@@ -104,6 +104,11 @@ class TrainingDataset(Dataset):
             template_img = self.transforms.norm(template_img)
             detection_img = self.transforms.norm(detection_img)
 
+        # multiply img tensors by 255 to get [0-255] values
+        if cfg.MAX_VALUE_IS_255:
+            template_img *= 255
+            detection_img *= 255
+
         # norm + unsqueeze along batch dimension
         return template_img.unsqueeze(0), \
             detection_img.unsqueeze(0), \
