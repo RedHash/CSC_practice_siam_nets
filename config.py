@@ -108,7 +108,7 @@ class ModelHolder:
 
         if model_name.startswith('efficientnet'):
             self.BACKBONE_TYPE = model_name
-            self.BACKBONE_KWARGS = {'use_features': [4, 5, 6], 'strides': [1, 2, 1, 1, 1, 1, 1]}
+            self.BACKBONE_KWARGS = {'use_features': [4, 5, 6], 'strides': [1, 2, 1, 1, 1, 1, 1], 'dilations': [1, 1, 2, 2, 2, 2, 2]}
 
             self.CHEST_TYPE = 'Identity'
             self.CHEST_KWARGS = {}
@@ -123,7 +123,7 @@ class ModelHolder:
             det2net = {f'efficientdet-d{i}': f'efficientnet-b{i}' for i in range(8)}
 
             self.BACKBONE_TYPE = det2net[model_name]
-            self.BACKBONE_KWARGS = {'use_features': [2, 3, 4, 5, 6], 'strides': [1, 2, 2, 2, 2, 2, 2]}
+            self.BACKBONE_KWARGS = {'use_features': [2, 3, 4, 5, 6], 'strides': [1, 2, 2, 2, 2, 2, 2], 'dilations': [1, 1, 1, 1, 1, 1, 1]}
 
             self.CHEST_TYPE = 'BIFPN'
             self.CHEST_KWARGS = {'in_channels': [40, 80, 112, 192, 320], 'out_channels': 256, 'stack': 3, 'num_outs': 5}
