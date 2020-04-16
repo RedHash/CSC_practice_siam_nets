@@ -23,7 +23,7 @@ GlobalParams = collections.namedtuple('GlobalParams', [
 # Parameters for an individual model block
 BlockArgs = collections.namedtuple('BlockArgs', [
     'kernel_size', 'num_repeat', 'input_filters', 'output_filters',
-    'expand_ratio', 'id_skip', 'stride', 'se_ratio'])
+    'expand_ratio', 'id_skip', 'stride', 'dilation', 'se_ratio'])
 
 # Change namedtuple defaults
 GlobalParams.__new__.__defaults__ = (None,) * len(GlobalParams._fields)
@@ -130,8 +130,10 @@ class Conv2dStaticSamePadding(nn.Conv2d):
 
     def __init__(self, in_channels, out_channels, kernel_size, image_size=None, **kwargs):
         super().__init__(in_channels, out_channels, kernel_size, **kwargs)
-        self.stride = self.stride if len(self.stride) == 2 else [
-                                                                    self.stride[0]] * 2
+        self.stride = self.stride if len(self.stride) == 2 \
+            else [self.stride[0]] * 2
+        self.dilation = self.dilation if len(self.dilation) == 2 \
+            else [self.dilation[0]] * 2
 
         # Calculate padding based on image size and save it
         assert image_size is not None
@@ -187,17 +189,22 @@ def efficientnet_params(model_name):
 
 
 def efficientnet(width_coefficient=None, depth_coefficient=None, dropout_rate=0.2,
-                 drop_connect_rate=0.2, image_size=None, num_classes=1000, strides=(1, 2, 2, 2, 2, 2, 2)):
+                 drop_connect_rate=0.2, image_size=None, num_classes=1000,
+                 strides=[1, 2, 2, 2, 2, 2, 2], dilations=[1, 1, 1, 1, 1, 1, 1]):
     """ Creates a efficientnet model. """
 
+    assertion = 'Check {} config: got length {}, expected: 7'
+    assert len(strides) == 7, assertion.format('strides', len(strides))
+    assert len(dilations) == 7, assertion.format('dilations', len(dilations))
+
     blocks_args = [
-        'r1_k3_s{}{}_e1_i32_o16_se0.25'.format(strides[0], strides[0]),
-        'r2_k3_s{}{}_e6_i16_o24_se0.25'.format(strides[1], strides[1]),
-        'r2_k5_s{}{}_e6_i24_o40_se0.25'.format(strides[2], strides[2]),
-        'r3_k3_s{}{}_e6_i40_o80_se0.25'.format(strides[3], strides[3]),
-        'r3_k5_s{}{}_e6_i80_o112_se0.25'.format(strides[4], strides[4]),
-        'r4_k5_s{}{}_e6_i112_o192_se0.25'.format(strides[5], strides[5]),
-        'r1_k3_s{}{}_e6_i192_o320_se0.25'.format(strides[6], strides[6]),
+        'r1_k3_s{}{}_d{}{}_e1_i32_o16_se0.25'.format(strides[0], strides[0], dilations[0], dilations[0]),
+        'r2_k3_s{}{}_d{}{}_e6_i16_o24_se0.25'.format(strides[1], strides[1], dilations[1], dilations[1]),
+        'r2_k5_s{}{}_d{}{}_e6_i24_o40_se0.25'.format(strides[2], strides[2], dilations[2], dilations[2]),
+        'r3_k3_s{}{}_d{}{}_e6_i40_o80_se0.25'.format(strides[3], strides[3], dilations[3], dilations[3]),
+        'r3_k5_s{}{}_d{}{}_e6_i80_o112_se0.25'.format(strides[4], strides[4], dilations[4], dilations[4]),
+        'r4_k5_s{}{}_d{}{}_e6_i112_o192_se0.25'.format(strides[5], strides[5], dilations[5], dilations[5]),
+        'r1_k3_s{}{}_d{}{}_e6_i192_o320_se0.25'.format(strides[6], strides[6], dilations[6], dilations[6]),
     ]
     blocks_args = BlockDecoder.decode(blocks_args)
 
@@ -218,13 +225,14 @@ def efficientnet(width_coefficient=None, depth_coefficient=None, dropout_rate=0.
     return blocks_args, global_params
 
 
-def get_model_params(model_name, strides, override_params):
+def get_model_params(model_name, strides, dilations, override_params):
     """ Get the block args and global params for a given model """
     if model_name.startswith('efficientnet'):
         w, d, s, p = efficientnet_params(model_name)
         # note: all models have drop connect rate = 0.2
         blocks_args, global_params = efficientnet(
-            width_coefficient=w, depth_coefficient=d, dropout_rate=p, image_size=s, strides=strides)
+            width_coefficient=w, depth_coefficient=d, dropout_rate=p,
+            image_size=s, strides=strides, dilations=dilations)
     else:
         raise NotImplementedError(
             'model name is not pre-defined: %s' % model_name)
@@ -288,7 +296,9 @@ class BlockDecoder(object):
             expand_ratio=int(options['e']),
             id_skip=('noskip' not in block_string),
             se_ratio=float(options['se']) if 'se' in options else None,
-            stride=[int(options['s'][0])])
+            stride=[int(options['s'][0])],
+            dilation=[int(options['d'][0])]
+        )
 
     @staticmethod
     def _encode_block_string(block):

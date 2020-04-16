@@ -51,9 +51,10 @@ class MBConvBlock(nn.Module):
         # Depthwise convolution phase
         k = self._block_args.kernel_size
         s = self._block_args.stride
+        d = self._block_args.dilation
         self._depthwise_conv = Conv2d(
             in_channels=oup, out_channels=oup, groups=oup,  # groups makes it depthwise
-            kernel_size=k, stride=s, bias=False)
+            kernel_size=k, stride=s, dilation=d, bias=False)
         self._bn1 = nn.BatchNorm2d(
             num_features=oup, momentum=self._bn_mom, eps=self._bn_eps)
 
@@ -221,10 +222,10 @@ class EfficientNet(nn.Module):
         return features
 
     @classmethod
-    def from_name(cls, model_name, use_features, strides, override_params=None):
+    def from_name(cls, model_name, use_features, strides, dilations, override_params=None):
         cls._check_model_name_is_valid(model_name)
         blocks_args, global_params = get_model_params(
-            model_name, strides, override_params)
+            model_name, strides, dilations, override_params)
         return cls(blocks_args, global_params, use_features)
 
     # @classmethod

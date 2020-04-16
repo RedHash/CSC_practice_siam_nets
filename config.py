@@ -25,9 +25,11 @@ GRAD_CLIP = 10.0
 VALID_INTERVAL = 1
 VALID_DELAY = 5
 
+# TODO: CHANGE TEMPLATE, DETECTION AND OUTPUT_SIZE DEPENDING ON MODEL
 D_TEMPLATE = 127
 D_DETECTION = 255
 OUTPUT_SIZE = 25
+
 HARDNEG_PROB = 0.2
 IS_NORM = True
 MAX_VALUE_IS_255 = False
@@ -107,23 +109,37 @@ class ModelHolder:
                 BGR = True
 
         if model_name.startswith('efficientnet'):
+            """
+            Original EfficientNet config is like this:
+                    -features-    p0  p1  p2  p3  p4  p5  p6
+                    'strides':   [1,  2,  2,  1,  2,  1,  2]
+                    'dilations': [1,  1,  1,  1,  1,  1,  1]
+            If we alter strides p4 and p6, we thus have to take care
+            of receptive field increase. This can be done by adding dillutions
+            before p4, p6 feature maps, so the config will be like this:
+                    -features-    p0  p1  p2  p3  p4  p5  p6
+                    'strides':   [1,  2,  2,  1,  1,  1,  1]
+                    'dilations': [1,  1,  1,  1,  2,  1,  2]
+            """
             self.BACKBONE_TYPE = model_name
-            self.BACKBONE_KWARGS = {'use_features': [4, 5, 6], 'strides': [1, 2, 1, 1, 1, 1, 1]}
+            self.BACKBONE_KWARGS = {'use_features': [2, 4, 6],
+                                    'strides': [1, 2, 2, 1, 1, 1, 1],
+                                    'dilations': [1, 1, 1, 1, 2, 1, 2]}
 
             self.CHEST_TYPE = 'Identity'
             self.CHEST_KWARGS = {}
 
             self.NECK_TYPE = 'AdjustAllLayer'
-            self.NECK_KWARGS = {'in_channels': [112, 192, 320], 'out_channels': [256, 256, 256]}
+            self.NECK_KWARGS = {'in_channels': [40, 112, 320], 'out_channels': [64, 64, 64]}
 
             self.RPN_TYPE = "MultiRPN"
-            self.RPN_KWARGS = {'anchor_num': ANCHOR_NUM, 'in_channels': [256, 256, 256], 'weighted': True}
+            self.RPN_KWARGS = {'anchor_num': ANCHOR_NUM, 'in_channels': [64, 64, 64], 'weighted': True}
 
         if model_name.startswith('efficientdet'):
             det2net = {f'efficientdet-d{i}': f'efficientnet-b{i}' for i in range(8)}
 
             self.BACKBONE_TYPE = det2net[model_name]
-            self.BACKBONE_KWARGS = {'use_features': [2, 3, 4, 5, 6], 'strides': [1, 2, 2, 2, 2, 2, 2]}
+            self.BACKBONE_KWARGS = {'use_features': [2, 3, 4, 5, 6], 'strides': [1, 2, 2, 2, 2, 2, 2], 'dilations': [1, 1, 1, 1, 1, 1, 1]}
 
             self.CHEST_TYPE = 'BIFPN'
             self.CHEST_KWARGS = {'in_channels': [40, 80, 112, 192, 320], 'out_channels': 256, 'stack': 3, 'num_outs': 5}
