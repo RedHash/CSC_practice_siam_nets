@@ -15,6 +15,23 @@ pip install gsutil
 gsutil -m cp -r gs://vot-proj/coco/* data/coco/
 ```
 
+### Model Zoo
+| Model Name | backbone | #params | EAO | 
+| :----------: | :--------: | :-----------: | :--------: |
+| SiamRPN++  | ResNet50 PySot | 53.95M | TBD | 
+| SiamRPN++  | ResNet50 ImageNet | 53.95M | TBD | 
+| EfficientSiamRPN  | EfficientNet-B0 | 5.79M | TBD | 
+| EfficientSiamRPN  | EfficientNet-B1 | 8.30M | TBD | 
+| EfficientSiamRPN  | EfficientNet-B2 | 9.62M | TBD | 
+| EfficientSiamRPN  | EfficientNet-B3 | 12.74M | TBD | 
+| EfficientSiamRPN  | EfficientNet-B4 | 19.85M | TBD | 
+| Siamese EfficientDet | EfficientNet-B0 | TBD | TBD | 
+| Siamese EfficientDet  | EfficientNet-B1 | TBD | TBD | 
+| Siamese EfficientDet  | EfficientNet-B2 | TBD | TBD | 
+| Siamese EfficientDet  | EfficientNet-B3 | TBD | TBD | 
+| Siamese EfficientDet  | EfficientNet-B4 | TBD | TBD | 
+
+
 ### Download Coco
 
 ```bash
