@@ -3,6 +3,7 @@ import torch
 from torch import Tensor
 from tqdm import tqdm
 from torch.nn.utils import clip_grad_norm_
+from torch.nn.parallel import data_parallel
 
 from utils.utils import is_valid_number, get_lr, get_gradnorm
 import config as cfg
@@ -23,7 +24,10 @@ def train(model, optimizer, dataloader, scheduler, criter, device, writer, args)
             [x.to(device) if isinstance(x, Tensor)
              else list(map(lambda e: e.to(device), x)) for x in batch]
 
-        cls_outputs, loc_outputs = model(templates, detections)
+        inputs = (templates, detections)
+        cls_outputs, loc_outputs = model(*inputs) \
+            if torch.cuda.device_count() <= 1 \
+            else data_parallel(model, inputs)
 
         loss, values = criter(cls_outputs, loc_outputs, gts, pos_anchors, neg_anchors)
         loss_values += values

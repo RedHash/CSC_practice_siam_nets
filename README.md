@@ -8,14 +8,28 @@ bash logs/tb.sh logs/tb_runs 6006
 
 ## Download Data (approx 10 Mb/sec)
 
-### Google cloud
+### Google cloud Coco
 
 ```bash
 pip install gsutil
-gsutil -m cp -r gs://vot-proj/coco/* data/coco/
+gsutil -m cp -r gs://efficient-vot/coco/* data/coco/
 ```
 
-### Model Zoo
+### Direct download Coco
+
+```bash
+wget http://images.cocodataset.org/zips/train2017.zip
+unzip train2017.zip && mv train2017 data/coco && rm train2017.zip
+
+wget http://images.cocodataset.org/zips/val2017.zip
+unzip val2017.zip && mv val2017 data/coco && rm val2017.zip
+
+wget http://images.cocodataset.org/annotations/annotations_trainval2017.zip
+unzip annotations_trainval2017.zip && mv annotations data/coco && rm annotations_trainval2017.zip
+```
+
+
+## Model Zoo
 | Model Name | backbone | #params | EAO | 
 | :----------: | :--------: | :-----------: | :--------: |
 | SiamRPN++  | ResNet50 PySot | 53.95M | TBD | 
@@ -30,20 +44,6 @@ gsutil -m cp -r gs://vot-proj/coco/* data/coco/
 | Siamese EfficientDet  | EfficientNet-B2 | TBD | TBD | 
 | Siamese EfficientDet  | EfficientNet-B3 | TBD | TBD | 
 | Siamese EfficientDet  | EfficientNet-B4 | TBD | TBD | 
-
-
-### Download Coco
-
-```bash
-wget http://images.cocodataset.org/zips/train2017.zip
-unzip train2017.zip && mv train2017 data/coco && rm train2017.zip
-
-wget http://images.cocodataset.org/zips/val2017.zip
-unzip val2017.zip && mv val2017 data/coco && rm val2017.zip
-
-wget http://images.cocodataset.org/annotations/annotations_trainval2017.zip
-unzip annotations_trainval2017.zip && mv annotations data/coco && rm annotations_trainval2017.zip
-```
 
 ## Run
 

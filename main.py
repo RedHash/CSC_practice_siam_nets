@@ -68,15 +68,8 @@ def build_tools(model, train_backbone=False, last_epoch=0):
     return optimizer, scheduler, criter
 
 
-def setup_single_gpu(model):
+def setup_gpu(model):
     device = torch.device("cuda:0" if torch.cuda.is_available() else "cpu")
-    model = model.to(device)
-    return model, device
-
-
-def setup_multi_gpu(model):
-    device = torch.device("cuda:0")
-    model = torch.nn.DataParallel(model)
     model = model.to(device)
     return model, device
 
@@ -95,7 +88,7 @@ def main(args):
     logger("Loading model...")
     model = load_model(args.load_filename)
     logger("Setup gpu...")
-    model, device = setup_single_gpu(model) if torch.cuda.device_count() <= 1 else setup_multi_gpu(model)
+    model, device = setup_gpu(model)
     logger("Setup tools...")
     optimizer, scheduler, criter = build_tools(model, last_epoch=model.load_epoch)
 
