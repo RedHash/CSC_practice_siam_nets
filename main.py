@@ -74,13 +74,6 @@ def setup_gpu(model):
     return model, device
 
 
-def setup_multi_gpu(model):
-    device = torch.device("cuda:0")
-    model = torch.nn.DataParallel(model)
-    model = model.to(device)
-    return model, device
-
-
 def setup_writer(tb_tag, args):
     writer = DummyWriter() if args.tb_tag is None else SummaryWriter(logdir=cfg.TB_LOGDIR / tb_tag)
     writer.add_text("Hyperparams", '<br />'.join([f"{k}: {v}" for k, v in args.__dict__.items()]))
