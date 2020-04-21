@@ -59,7 +59,7 @@ def download_backbone_weights(backbone, path):
         'efficientnet-b2': 'https://github.com/lukemelas/EfficientNet-PyTorch/releases/download/1.0/adv-efficientnet-b2-6e9d97e5.pth',
         'efficientnet-b3': 'https://github.com/lukemelas/EfficientNet-PyTorch/releases/download/1.0/adv-efficientnet-b3-cdd7c0f4.pth',
     }
-    download_url_to_file(backbone_to_url[backbone], path)
+    download_url_to_file(backbone_to_url[backbone], path, hash_prefix=None, progress=True)
 
 
 def remove_prefix(state_dict, prefix):
