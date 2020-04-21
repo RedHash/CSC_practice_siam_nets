@@ -2,7 +2,10 @@ import random
 import numpy as np
 import math
 import torch
-from torch.hub import download_url_to_file
+try:
+    from torch.hub import download_url_to_file
+except ImportError:
+    from torch.hub import _download_url_to_file as download_url_to_file
 
 
 def init_seed(seed):
