@@ -51,9 +51,10 @@ unzip annotations_trainval2017.zip && mv annotations data/coco && rm annotations
 python -m main \
     -mode trainval \
     -model_name resnet50-pysot \
-    -batch_size 16 \
+    -batch_size 256 \
     -accumulation_interval 4 \
     -n_per_epoch 100000 \
+    -num_workers 8 \
     -save_filename siam \
     -tb_tag pysot
 ```
