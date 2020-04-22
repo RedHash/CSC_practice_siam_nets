@@ -52,7 +52,7 @@ python -m main \
     -mode trainval \
     -model_name resnet50-pysot \
     -batch_size 256 \
-    -accumulation_interval 4 \
+    -accumulation_interval 1 \
     -n_per_epoch 100000 \
     -num_workers 8 \
     -save_filename siam \
