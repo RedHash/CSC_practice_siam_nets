@@ -2,6 +2,7 @@ import argparse
 import torch
 from tensorboardX import SummaryWriter
 from torch.optim.adamw import AdamW
+from torch.multiprocessing import set_sharing_strategy
 
 from train import train
 from eval import evaluate
@@ -12,6 +13,8 @@ from utils.loss import TrackingLoss
 from utils.scheduler import build_scheduler
 from utils.utils import init_seed, count_parameters, download_backbone_weights, str2maybeNone, DummyWriter
 import config as cfg
+
+set_sharing_strategy('file_system')
 
 
 def get_args():
@@ -24,6 +27,7 @@ def get_args():
     parser.add_argument("-batch_size", default=8, type=int)
     parser.add_argument("-accumulation_interval", default=4, type=int)
     parser.add_argument("-n_per_epoch", default=600000, type=int)
+    parser.add_argument("-num_workers", default=0, type=int)
 
     parser.add_argument("-save_filename", default='siam.pth', type=str2maybeNone)
     parser.add_argument("-load_filename", default='None', type=str2maybeNone)
@@ -95,7 +99,7 @@ def main(args):
     if args.mode == 'trainval':
 
         logger("Load train dataloader...")
-        train_loader = get_train_dataloader(args.n_per_epoch, args.batch_size, cfg.NUM_WORKERS)
+        train_loader = get_train_dataloader(args.n_per_epoch, args.batch_size, args.num_workers)
 
         for epoch in range(model.load_epoch, cfg.EPOCHS):
 
