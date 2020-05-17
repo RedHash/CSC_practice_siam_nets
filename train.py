@@ -24,6 +24,7 @@ def train(model, optimizer, dataloader, scheduler, criter, device, writer, args)
             [x.to(device) if isinstance(x, Tensor)
              else list(map(lambda e: e.to(device), x)) for x in batch]
 
+        # cls(loc)_outputs: torch.Size([bs, 2(4)*n_anchs, w, h])
         inputs = (templates, detections)
         cls_outputs, loc_outputs = model(*inputs) \
             if torch.cuda.device_count() <= 1 \

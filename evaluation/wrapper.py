@@ -11,18 +11,9 @@ import config as cfg
 
 class SiamRpnEvalTracker:
     def __init__(self, model, device):
-        self.score_size = (cfg.D_DETECTION - cfg.D_TEMPLATE) // \
-                          cfg.ANCHOR_STRIDE + 1 + cfg.TRACK_BASE_SIZE
-
-        hanning = np.hanning(self.score_size)
-        window = np.outer(hanning, hanning)
-        self.window = np.tile(window.flatten(), cfg.ANCHOR_NUM)
-
-        self.anchors = self.generate_anchor(self.score_size)
-
+        self.window = self.get_window()
         self.model = model
         self.model.eval()
-
         self.device = device
 
     def _init(self, img, bbox):
@@ -69,7 +60,7 @@ class SiamRpnEvalTracker:
         outputs = self.model.track(x_crop)
 
         score = self._convert_score(outputs[0])
-        pred_bbox = self._convert_bbox(outputs[1], self.anchors)
+        pred_bbox = self._convert_bbox(outputs[1], Anchors.centersizes)
 
         def change(r):
             return np.maximum(r, 1. / r)
@@ -188,28 +179,12 @@ class SiamRpnEvalTracker:
         return im_patch
 
     @staticmethod
-    def generate_anchor(score_size):
-        # TODO Load anchors from utils.anchors
-        anchors = Anchors(cfg.ANCHOR_STRIDE,
-                          cfg.ANCHOR_RATIOS,
-                          cfg.ANCHOR_SCALES)
-        anchor = anchors.base_anchors
-        x1, y1, x2, y2 = anchor[:, 0], anchor[:, 1], anchor[:, 2], anchor[:, 3]
-        anchor = np.stack([(x1 + x2) * 0.5, (y1 + y2) * 0.5, x2 - x1, y2 - y1], 1)
-
-        total_stride = anchors.stride
-        anchor_num = anchor.shape[0]
-
-        anchor = np.tile(anchor, score_size * score_size).reshape((-1, 4))
-
-        ori = - (score_size // 2) * total_stride
-        xx, yy = np.meshgrid([ori + total_stride * dx for dx in range(score_size)],
-                             [ori + total_stride * dy for dy in range(score_size)])
-        xx, yy = np.tile(xx.flatten(), (anchor_num, 1)).flatten(), \
-            np.tile(yy.flatten(), (anchor_num, 1)).flatten()
-
-        anchor[:, 0], anchor[:, 1] = xx.astype(np.float32), yy.astype(np.float32)
-        return anchor
+    def get_window():
+        score_size = (cfg.D_DETECTION - cfg.D_TEMPLATE) // cfg.ANCHOR_STRIDE + 1 + cfg.TRACK_BASE_SIZE
+        hanning = np.hanning(score_size)
+        window = np.outer(hanning, hanning)
+        window = np.tile(window.flatten(), cfg.ANCHOR_NUM)
+        return window
 
     @staticmethod
     def _convert_bbox(delta, anchor):
@@ -281,3 +256,7 @@ class TrackerEvalWrapper(SiamRpnEvalTracker):
         bbox = corner2center(bbox)
 
         return bbox
+
+
+if __name__ == "__main__":
+    """ quick test """

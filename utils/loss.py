@@ -4,7 +4,7 @@ import torch.nn.functional as F
 import numpy as np
 
 
-from utils.anchor import get_anchors_torch
+from utils.anchor import Anchors
 
 
 class TrackingLoss(nn.Module):
@@ -15,7 +15,6 @@ class TrackingLoss(nn.Module):
         assert cls_weight + loc_weight == 1., "Loss sum coefficients should sum into 1. "
         self.cls_weight = cls_weight
         self.loc_weight = loc_weight
-        self.anchors_corners, self.anchors_centersizes = get_anchors_torch()
 
     def forward(self, cls_outputs, loc_outputs, gts, pos_anchors, neg_anchors):
         """
@@ -61,7 +60,7 @@ class TrackingLoss(nn.Module):
             # torch.Size([n_pos_anchors, 4])
             loc_out = loc_out[pos_anchs]
             # torch.Size([n_pos_anchors, 4])
-            loc_tgt = self.loc_tgt(gt, self.anchors_centersizes[pos_anchs])
+            loc_tgt = self.loc_tgt(gt, Anchors.torch_centersizes[pos_anchs])
             # torch.Size([1])
             loc_loss = F.smooth_l1_loss(loc_out, loc_tgt)
 
