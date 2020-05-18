@@ -53,10 +53,6 @@ class TrainingDataset(Dataset):
         template_gt, detection_gt, template_img, detection_img = \
             self.sample_hardnegative() if hard_negative else self.sample()
 
-        if cfg.BGR:
-            template_img = self.rgb_to_bgr(template_img)
-            detection_img = self.rgb_to_bgr(detection_img)
-
         template_A, detection_A = self.get_A(template_gt), self.get_A(detection_gt)
         template_center, detection_center = self.get_center(template_gt), self.get_center(detection_gt)
         template_indent, detection_indent = \
@@ -84,6 +80,10 @@ class TrainingDataset(Dataset):
         # d = ImageDraw.Draw(detection_img_1)
         # d.rectangle(tuple(detection_gt), outline=1)
         # detection_img_1.show()
+
+        if cfg.BGR:
+            template_img = self.rgb_to_bgr(template_img)
+            detection_img = self.rgb_to_bgr(detection_img)
 
         # get dists and correct gt parametrization
         overlaps = self.get_iou(detection_gt)
