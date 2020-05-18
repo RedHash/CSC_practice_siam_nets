@@ -11,7 +11,7 @@ from torch.utils.data import Dataset, DataLoader
 from PIL import Image, ImageStat
 
 
-from utils.anchor import get_anchors_numpy
+from utils.anchor import Anchors
 from log.logger import logger
 import config as cfg
 
@@ -36,7 +36,6 @@ class TrainingDataset(Dataset):
         self.n_videos = len(self.videos)
         self.n_per_epoch = n_per_epoch
         self.transforms = self.get_transforms()
-        self.anchors_corners, self.anchors_centersizes = get_anchors_numpy()
 
     def __getitem__(self, index):
         return self.single_sample(hard_negative=random.random() < cfg.HARDNEG_PROB)
@@ -112,7 +111,7 @@ class TrainingDataset(Dataset):
         # norm + unsqueeze along batch dimension
         return template_img.unsqueeze(0), \
             detection_img.unsqueeze(0), \
-            torch.from_numpy(detection_gt).unsqueeze(0), \
+            torch.from_numpy(detection_gt).float().unsqueeze(0), \
             torch.from_numpy(pos_anchors).long(), \
             torch.from_numpy(neg_anchors).long()
 
@@ -179,14 +178,15 @@ class TrainingDataset(Dataset):
         blank.paste(pure_img, (int(shift_x), int(shift_y)))
         return blank
 
-    def get_iou(self, detection_gt):
+    @staticmethod
+    def get_iou(detection_gt):
         """ Calculate gt-anchors overlaps
         :param detection_gt: np.shape([4,])
         :return:
             overlaps | np.shape([n_anchors,])
         """
         x1, y1, x2, y2 = detection_gt
-        ax1, ay1, ax2, ay2 = self.anchors_corners.T
+        ax1, ay1, ax2, ay2 = Anchors.corners.T
         xx1 = np.maximum(ax1, x1)
         yy1 = np.maximum(ay1, y1)
         xx2 = np.minimum(ax2, x2)
@@ -280,7 +280,7 @@ def get_train_dataloader(n_per_epoch, batch_size, num_workers):
 
     def collate_fn(batch_data):
         templates, detections, gts, pos, neg = zip(*batch_data)
-        return torch.cat(templates), torch.cat(detections), torch.cat(gts).float(), pos, neg
+        return torch.cat(templates), torch.cat(detections), torch.cat(gts), pos, neg
 
     return DataLoader(dataset=TrainingDataset(videos_list, n_per_epoch),
                       batch_size=batch_size, num_workers=num_workers, collate_fn=collate_fn)
@@ -301,18 +301,18 @@ def load_raw_coco():
         # path2img, bbox_list
         id2data = {}
         for elem in anno_file['images']:
-            id2data[elem['id']] = (images[elem['file_name']], [])
+            id2data[elem['id']] = (images.get(elem['file_name'], None), [])
         for elem in anno_file['annotations']:
             if len(elem['bbox']) == 4:
                 x1, y1, w, h = elem['bbox']
                 id2data[elem['image_id']][1].append((x1, y1, x1 + w, y1 + h))
         # delete empty images
         del anno_file, images
-        id2data = {k: v for k, v in id2data.items() if v[1]}
+        id2data = {k: v for k, v in id2data.items() if v[0] and v[1]}
         # create buffers
         return [VideoBuffer(
             title=k, images=[path] * len(bbox),
-            gt=np.array(bbox), sample_range=cfg.COCO_SAMPLE_RANGE
+            gt=np.array(bbox), sample_range=cfg.COCO_SAMPLE_RANGE,
         ) for k, (path, bbox) in id2data.items()]
 
     return load_split('train2017', 'instances_train2017.json') + load_split('val2017', 'instances_val2017.json')
@@ -321,8 +321,3 @@ def load_raw_coco():
 if __name__ == "__main__":
     """ quick test """
 
-    dl = get_train_dataloader(n_per_epoch=12, batch_size=3, num_workers=0)
-    for e in dl:
-        print(e)
-        break
-    exit(0)

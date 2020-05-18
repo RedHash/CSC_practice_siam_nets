@@ -1,92 +1,78 @@
-import math
 import numpy as np
 import torch
 from itertools import product
 
-from utils.crops import corner2center, center2corner
 import config as cfg
 
 
-class Anchors:
-
-    box_anchors: np.ndarray
-    center_anchors: np.ndarray
+class AnchorsStorage:
 
     def __init__(self, stride, ratios, scales):
         self.stride = stride
         self.ratios = ratios
         self.scales = scales
-        self.n_anchors = len(self.scales) * len(self.ratios)
-        self.base_anchors = np.zeros((self.n_anchors, 4), dtype=np.float32)
-        self.generate_base_anchors()
+        base_anchors = self.generate_base_anchors(stride, ratios, scales)
 
-    def generate_base_anchors(self):
-        """ creates base_anchors class instance
-        which is a 2d numpy array of shape (n_anchors, 4)
-        stores (x1, y1, x2, y2) coordinates of each anchor """
-        anchor_size = self.stride * self.stride
-        combinations = list(product(self.ratios, self.scales))
-        for anchor_idx in range(self.n_anchors):
-            r, s = combinations[anchor_idx]
-            # TODO Why int?
-            ws = int(math.sqrt(anchor_size / r))
-            w = ws * s
-            h = int(ws * r) * s
-            self.base_anchors[anchor_idx, :] = \
-                np.array([-w * 0.5, -h * 0.5, w * 0.5, h * 0.5])
+        # np.shape([n_anchors, 4])
+        centersizes = self.generate_centersizes(base_anchors, stride)
+        self.centersizes = centersizes.copy()  # centered
+        self.corners = self.generate_corners(centersizes.copy())  # not centered
+        self.torch_centersizes = torch.from_numpy(centersizes.copy())  # centered
 
-    def generate_all_anchors(self, img_center, size):
-        """ creates box_anchors and center_anchors class instances
-        args:
-            img_center - center of the search region
-            size - size of the output
-        box_anchors:
-            stores (x1, y1, x2, y2) for each anchor
-            Tensor of shape [4, n_anchors, size, size]
-        center_anchors:
-            (x_center, y_center, width, height) for each anchor
-            Tensor of shape [4, n_anchors, size, size]
+    @staticmethod
+    def generate_base_anchors(stride, ratios, scales):
+        """ Func to create base anchors
+        :return:
+            np.shape([n_base_anchors, 4])
         """
-        a0x = img_center - size // 2 * self.stride
-        moved_anchors = self.base_anchors + a0x
+        n_base_anchors = len(scales) * len(ratios)
+        base_anchors = np.zeros((n_base_anchors, 4), dtype=np.float32)
+        combinations = list(product(ratios, scales))
+        for idx in range(n_base_anchors):
+            r, s = combinations[idx]
+            # TODO int(...) -> cause massive difference, is it correct and why?
+            w, h = int(stride * np.sqrt(1/r)) * s, int(stride * np.sqrt(r)) * s
+            base_anchors[idx, :] = 0.5 * np.array([-w, -h, w, h])
+        return base_anchors
 
-        x1 = moved_anchors[:, 0]
-        y1 = moved_anchors[:, 1]
-        x2 = moved_anchors[:, 2]
-        y2 = moved_anchors[:, 3]
+    @staticmethod
+    def generate_centersizes(base_anchors, stride):
+        """ Func to create centered (cx, cy, w, h) anchors
+        :return:
+            np.shape([n_anchors, 4])
+        """
+        score_size = (cfg.D_DETECTION - cfg.D_TEMPLATE) // cfg.ANCHOR_STRIDE + 1 + cfg.TRACK_BASE_SIZE
 
-        x1, y1, x2, y2 = map(lambda x: x.reshape(self.n_anchors, 1, 1),
-                             [x1, y1, x2, y2])
-        cx, cy, w, h = corner2center([x1, y1, x2, y2])
+        x1, y1, x2, y2 = base_anchors.T
+        anchor = np.stack([(x1 + x2) * 0.5, (y1 + y2) * 0.5, x2 - x1, y2 - y1], 1)
+        anchor_num = anchor.shape[0]
 
-        x_strides = np.arange(0, size).reshape((1, 1, -1)) * self.stride
-        y_strides = np.arange(0, size).reshape((1, -1, 1)) * self.stride
+        anchor = np.tile(anchor, score_size * score_size).reshape([-1, 4])
 
-        cx = cx + x_strides
-        cy = cy + y_strides
+        ori = - (score_size // 2) * stride
+        xx, yy = np.meshgrid([ori + stride * dx for dx in range(score_size)],
+                             [ori + stride * dy for dy in range(score_size)])
+        xx, yy = [np.tile(e.flatten(), [anchor_num, 1]).flatten() for e in (xx, yy)]
 
-        zero = np.zeros((self.n_anchors, size, size), dtype=np.float32)
-        cx, cy, w, h = map(lambda x: x + zero, [cx, cy, w, h])
+        anchor[:, 0], anchor[:, 1] = xx.astype(np.float32), yy.astype(np.float32)
+        return anchor
 
-        x1, y1, x2, y2 = center2corner([cx, cy, w, h])
-
-        self.box_anchors = np.stack([x1, y1, x2, y2]).astype(np.float32)
-        self.center_anchors = np.stack([cx, cy, w, h]).astype(np.float32)
-
-
-def get_anchors_numpy():
-    anchors = Anchors(cfg.ANCHOR_STRIDE, cfg.ANCHOR_RATIOS, cfg.ANCHOR_SCALES)
-    anchors.generate_all_anchors(cfg.D_DETECTION // 2, size=cfg.OUTPUT_SIZE)
-    corners, centersizes = anchors.box_anchors, anchors.center_anchors
-    corners = corners.transpose([0, 2, 3, 1])
-    centersizes = centersizes.transpose([0, 2, 3, 1])
-    return corners.reshape([4, -1]).T, centersizes.reshape([4, -1]).T
+    @staticmethod
+    def generate_corners(centersizes):
+        """ Func to create (x1, y1, x2, y2) anchors
+        :return:
+            np.shape([n_anchors, 4])
+        """
+        centersizes[:, 0:2] += cfg.D_DETECTION // 2
+        x, y, w, h = centersizes.T
+        return np.stack([x - w * 0.5, y - h * 0.5, x + w * 0.5, y + h * 0.5], 1)
 
 
-def get_anchors_torch():
-    return [torch.from_numpy(e) for e in get_anchors_numpy()]
+Anchors = AnchorsStorage(cfg.ANCHOR_STRIDE, cfg.ANCHOR_RATIOS, cfg.ANCHOR_SCALES)
 
 
 if __name__ == '__main__':
     """ quick test """
-    pass
+
+    print(Anchors.centersizes[:10])
+    print(Anchors.corners[:10])
