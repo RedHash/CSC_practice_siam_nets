@@ -301,18 +301,18 @@ def load_raw_coco():
         # path2img, bbox_list
         id2data = {}
         for elem in anno_file['images']:
-            id2data[elem['id']] = (images[elem['file_name']], [])
+            id2data[elem['id']] = (images.get(elem['file_name'], None), [])
         for elem in anno_file['annotations']:
             if len(elem['bbox']) == 4:
                 x1, y1, w, h = elem['bbox']
                 id2data[elem['image_id']][1].append((x1, y1, x1 + w, y1 + h))
         # delete empty images
         del anno_file, images
-        id2data = {k: v for k, v in id2data.items() if v[1]}
+        id2data = {k: v for k, v in id2data.items() if v[0] and v[1]}
         # create buffers
         return [VideoBuffer(
             title=k, images=[path] * len(bbox),
-            gt=np.array(bbox), sample_range=cfg.COCO_SAMPLE_RANGE
+            gt=np.array(bbox), sample_range=cfg.COCO_SAMPLE_RANGE,
         ) for k, (path, bbox) in id2data.items()]
 
     return load_split('train2017', 'instances_train2017.json') + load_split('val2017', 'instances_val2017.json')
