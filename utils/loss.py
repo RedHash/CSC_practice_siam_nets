@@ -28,38 +28,39 @@ class TrackingLoss(nn.Module):
             values: list
         """
         losses = [self.single_loss(*args) for args
-                  in zip(cls_outputs, loc_outputs, pos_anchors, neg_anchors, gts)]
+                  in zip(cls_outputs, loc_outputs, gts, pos_anchors, neg_anchors)]
 
         neg_cls_loss, pos_cls_loss, loc_loss = [self.mean_filter(loss_prt) for loss_prt in zip(*losses)]
         loss = self.cls_weight * (0.5 * neg_cls_loss + 0.5 * pos_cls_loss) + self.loc_weight * loc_loss
 
         return loss, [self.extract_item(e) for e in (loss, neg_cls_loss, pos_cls_loss, loc_loss)]
 
-    def single_loss(self, cls_out, loc_out, pos_anchs, neg_anchs, gt):
+    def single_loss(self, cls_out, loc_out, gt, pos_anchs, neg_anchs):
 
-        cls_out = cls_out.view(2, -1).T
-        loc_out = loc_out.view(4, -1).T
+        cls_out = cls_out.contiguous().view(2, -1).T
+        loc_out = loc_out.contiguous().view(4, -1).T
         neg_cls_loss, pos_cls_loss, loc_loss = 0, 0, 0
+        n_neg_anchs, n_pos_anchs = len(neg_anchs), len(pos_anchs)
 
-        if len(neg_anchs):
-            # torch.Size([n_neg_anchors, 2])
+        if n_neg_anchs:
+            # torch.Size([n_neg_anchs, 2])
             neg_cls_out = cls_out[neg_anchs]
-            # torch.Size([n_neg_anchors])
-            neg_cls_tgt = torch.zeros(len(neg_anchs), dtype=torch.long, device=cls_out.device)
+            # torch.Size([n_neg_anchs])
+            neg_cls_tgt = torch.zeros(n_neg_anchs, dtype=torch.long, device=cls_out.device)
             # torch.Size([1])
             neg_cls_loss = F.cross_entropy(neg_cls_out, neg_cls_tgt)
 
-        if len(pos_anchs):
-            # torch.Size([n_pos_anchors, 2])
+        if n_pos_anchs:
+            # torch.Size([n_pos_anchs, 2])
             pos_cls_out = cls_out[pos_anchs]
-            # torch.Size([n_pos_anchors])
-            pos_cls_tgt = torch.ones(len(pos_anchs), dtype=torch.long, device=cls_out.device)
+            # torch.Size([n_pos_anchs])
+            pos_cls_tgt = torch.ones(n_pos_anchs, dtype=torch.long, device=cls_out.device)
             # torch.Size([1])
             pos_cls_loss = F.cross_entropy(pos_cls_out, pos_cls_tgt)
 
-            # torch.Size([n_pos_anchors, 4])
+            # torch.Size([n_pos_anchs, 4])
             loc_out = loc_out[pos_anchs]
-            # torch.Size([n_pos_anchors, 4])
+            # torch.Size([n_pos_anchs, 4])
             loc_tgt = self.loc_tgt(gt, Anchors.torch_centersizes[pos_anchs])
             # torch.Size([1])
             loc_loss = F.smooth_l1_loss(loc_out, loc_tgt)
@@ -80,7 +81,7 @@ class TrackingLoss(nn.Module):
     @staticmethod
     def loc_tgt(gt, anchs):
         anchs = anchs.to(gt.device)
-        delta = gt.unsqueeze(0).expand_as(anchs).clone()
+        delta = gt.unsqueeze(0).repeat(len(anchs), 1)
         delta[:, 0:2] -= anchs[:, 0:2]
         delta[:, 0:2] /= anchs[:, 2:4]
         delta[:, 2:4] = torch.log(torch.div(delta[:, 2:4], anchs[:, 2:4]))
